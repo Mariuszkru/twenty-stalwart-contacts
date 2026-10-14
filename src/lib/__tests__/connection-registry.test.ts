@@ -1,4 +1,4 @@
-import { addEntry, mergeConnections, removeEntry } from 'src/lib/connection-registry';
+import { addEntry, mergeConnections, removeEntry, shouldPurgeOnDisconnect } from 'src/lib/connection-registry';
 import { describe, expect, it } from 'vitest';
 
 const e = (id: string, m: string | null = 'm1') => ({ id, workspaceMemberId: m, userWorkspaceId: `u-${id}` });
@@ -42,5 +42,29 @@ describe('mergeConnections', () => {
 
   it('registry-only entries start without an auth failure', () => {
     expect(mergeConnections([], [e('c1')])[0].authFailedAt).toBeNull();
+  });
+});
+
+describe('shouldPurgeOnDisconnect', () => {
+  const conns = [
+    { id: 'c1', workspaceMemberId: 'm1' },
+    { id: 'c2', workspaceMemberId: 'm1' },
+    { id: 'c3', workspaceMemberId: 'm2' },
+  ];
+
+  it('purges when it was the only connection of the member', () => {
+    expect(shouldPurgeOnDisconnect(conns, 'c3', 'm2')).toBe(true);
+  });
+
+  it('does not purge while the member has another connection', () => {
+    expect(shouldPurgeOnDisconnect(conns, 'c1', 'm1')).toBe(false);
+  });
+
+  it('does not purge for an unknown member', () => {
+    expect(shouldPurgeOnDisconnect(conns, 'c1', null)).toBe(false);
+  });
+
+  it('a connection of another member never keeps the cards alive', () => {
+    expect(shouldPurgeOnDisconnect([{ id: 'c3', workspaceMemberId: 'm2' }, { id: 'x', workspaceMemberId: 'm9' }], 'c3', 'm2')).toBe(true);
   });
 });

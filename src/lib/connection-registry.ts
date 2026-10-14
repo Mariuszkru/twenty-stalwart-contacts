@@ -47,3 +47,12 @@ export const mergeConnections = (
 
   return [...byId.values()];
 };
+
+// On disconnect: purge the member's cards only if this was their last connection.
+export const shouldPurgeOnDisconnect = (
+  connections: readonly { id: string; workspaceMemberId: string | null }[],
+  disconnectedId: string,
+  memberId: string | null,
+): boolean =>
+  !!memberId &&
+  !connections.some((c) => c.id !== disconnectedId && c.workspaceMemberId === memberId);
