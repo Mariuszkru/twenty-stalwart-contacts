@@ -10,6 +10,7 @@ import { SYNC_MEMBER_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identi
 import { evaluateEligibility } from 'src/lib/eligibility';
 import { assertHttps, fetchSession, JmapHttpError, jmapCall } from 'src/lib/jmap';
 import { runMemberStep, type MemberJob } from 'src/lib/member-sync';
+import { recordOutcome } from 'src/lib/health-store';
 import { existingPersonIds, fetchPeopleByIds, fetchPeoplePage } from 'src/lib/twenty-people';
 import { fetchPersonMetadata, fetchRoles } from 'src/lib/twenty-metadata';
 import { anyRoleHasPersonPredicates, snapshotsByMember } from 'src/lib/twenty-reader';
@@ -41,6 +42,7 @@ export default defineLogicFunction({
 
     if (connection.authFailedAt) {
       await saveStatus(job, 'auth-error');
+      if (!job.dryRun) await recordOutcome(job.workspaceMemberId, { kind: 'auth-error' });
       return { status: 'auth-error' };
     }
 
@@ -82,6 +84,16 @@ export default defineLogicFunction({
           retryLimit: 2,
         });
       } else {
+        if (!job.dryRun) {
+          await recordOutcome(
+            job.workspaceMemberId,
+            result.outcome === 'halted'
+              ? { kind: 'halted', reason: result.reason ?? 'unsupported-config' }
+              : result.outcome === 'done'
+                ? { kind: 'ok' }
+                : { kind: 'neutral' },
+          );
+        }
         await saveStatus(
           job,
           result.outcome === 'done' ? 'connected' : result.outcome,
@@ -93,6 +105,7 @@ export default defineLogicFunction({
     } catch (e) {
       if (e instanceof JmapHttpError && e.status === 401) {
         await saveStatus(job, 'auth-error');
+        if (!job.dryRun) await recordOutcome(job.workspaceMemberId, { kind: 'auth-error' });
         return { status: 'auth-error' };
       }
 
