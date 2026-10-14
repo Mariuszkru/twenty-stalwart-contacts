@@ -1,6 +1,7 @@
-import { enqueueJobs, listConnections } from 'twenty-sdk/logic-function';
+import { enqueueJobs } from 'twenty-sdk/logic-function';
 
 import { SYNC_MEMBER_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
+import { listAllStalwartConnections } from 'src/lib/connections';
 import { emptyCounts, type MemberJob } from 'src/lib/member-sync';
 
 // Queues a full reconcile chain for members that own a Stalwart connection.
@@ -12,7 +13,7 @@ export const startReconcile = async (opts: {
 }) => {
   if (process.env.SYNC_ENABLED === 'false') return { status: 'disabled' as const };
 
-  const connections = await listConnections({ providerName: 'stalwart' });
+  const connections = await listAllStalwartConnections();
   const jobs: MemberJob[] = connections
     .filter(
       (c) =>
@@ -38,5 +39,12 @@ export const startReconcile = async (opts: {
     });
   }
 
-  return { status: 'queued' as const, dryRun: opts.dryRun, members: jobs.length, connections: connections.length };
+  return {
+    status: 'queued' as const,
+    dryRun: opts.dryRun,
+    members: jobs.length,
+    connections: connections.length,
+    // ids only, to drive a manual sync-member run in dry-run
+    ...(opts.dryRun ? { jobs: jobs.map((j) => ({ m: j.workspaceMemberId, c: j.connectionId })) } : {}),
+  };
 };

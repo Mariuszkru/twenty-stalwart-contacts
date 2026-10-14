@@ -1,6 +1,10 @@
 import { defineConnectionProvider } from 'twenty-sdk/define';
 
-import { STALWART_CONNECTION_PROVIDER_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
+import {
+  ON_STALWART_CONNECT_UNIVERSAL_IDENTIFIER,
+  ON_STALWART_DISCONNECT_UNIVERSAL_IDENTIFIER,
+  STALWART_CONNECTION_PROVIDER_UNIVERSAL_IDENTIFIER,
+} from 'src/constants/universal-identifiers';
 
 // Per-member OAuth connection to Stalwart. Scope is limited to contacts, so the
 // token cannot read mail. Endpoints come from https://mail.recoop.pl/.well-known/oauth-authorization-server
@@ -20,4 +24,7 @@ export default defineConnectionProvider({
     tokenRequestContentType: 'form-urlencoded',
     usePkce: true,
   },
+  // Keep a registry of connection ids: private connections are invisible to cron/events.
+  onConnectLogicFunction: { universalIdentifier: ON_STALWART_CONNECT_UNIVERSAL_IDENTIFIER },
+  onDisconnectLogicFunction: { universalIdentifier: ON_STALWART_DISCONNECT_UNIVERSAL_IDENTIFIER },
 });

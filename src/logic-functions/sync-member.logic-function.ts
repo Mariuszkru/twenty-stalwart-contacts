@@ -40,6 +40,14 @@ export default defineLogicFunction({
       return { status: 'unconfigured' };
     }
 
+    // Only private connections are accepted: a workspace-shared token is visible to
+    // every member in Twenty, so it is refused and the member is asked to re-add it.
+    if (connection.visibility !== 'user') {
+      await saveStatus(job, 'shared-connection');
+      if (!job.dryRun) await recordOutcome(job.workspaceMemberId, { kind: 'shared-connection' });
+      return { status: 'shared-connection' };
+    }
+
     if (connection.authFailedAt) {
       await saveStatus(job, 'auth-error');
       if (!job.dryRun) await recordOutcome(job.workspaceMemberId, { kind: 'auth-error' });

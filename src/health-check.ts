@@ -28,6 +28,14 @@ export default defineHealthCheck({
         } as const;
       }
 
+      if (health.sharedConnections?.length) {
+        return {
+          status: 'WARNING',
+          title: 'Stalwart connection must be private',
+          description: `${health.sharedConnections.length} member(s) added a workspace-shared connection. Remove it and add it again with "Just for me"; shared connections are not used.`,
+        } as const;
+      }
+
       if (health.authErrors.length) {
         return {
           status: 'WARNING',

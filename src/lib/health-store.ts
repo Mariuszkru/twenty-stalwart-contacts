@@ -9,7 +9,7 @@ import {
 } from 'src/lib/health-state';
 
 export const readHealth = async (): Promise<HealthState> =>
-  (await kv.get<HealthState>(HEALTH_KEY)) ?? emptyHealth();
+  ({ ...emptyHealth(), ...((await kv.get<HealthState>(HEALTH_KEY)) ?? {}) });
 
 // Read-modify-write; low volume (one write per finished member chain), races are tolerable.
 export const recordOutcome = async (memberId: string, outcome: Outcome): Promise<void> => {
