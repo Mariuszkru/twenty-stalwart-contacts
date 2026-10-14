@@ -42,6 +42,8 @@ export type MemberJob = {
   // 'ids' phase (event path): specific people and what happened to them
   personIds?: string[];
   op?: 'upsert' | 'delete';
+  // member asked to remove all synced cards (purge-my-cards): handled as a 'clear'
+  purge?: boolean;
   dryRun: boolean;
   counts: Counts;
 };

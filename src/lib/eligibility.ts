@@ -41,7 +41,8 @@ export type EligibilityDecision =
       reason:
         | 'role-unresolved'
         | 'no-person-access'
-        | 'field-permissions-unknown';
+        | 'field-permissions-unknown'
+        | 'purge-requested';
     }
   // unsupported config: stop sync for everyone, wipe books, surface in health check
   | {

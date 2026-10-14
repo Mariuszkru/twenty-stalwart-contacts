@@ -3,6 +3,7 @@ import {
   failedIds,
   fetchSession,
   jmapCall,
+  isTransientError,
   JmapHttpError,
   type JmapSession,
 } from 'src/lib/jmap';
@@ -98,4 +99,19 @@ describe('failedIds', () => {
   });
 
   it.each([undefined, null, {}])('is empty for %j', (r) => expect(failedIds(r)).toEqual([]));
+});
+
+describe('isTransientError', () => {
+  it.each([429, 500, 502, 503])('retries HTTP %i', (st) => {
+    expect(isTransientError(new JmapHttpError(st, 'call'))).toBe(true);
+  });
+
+  it.each([400, 401, 403, 404])('does not retry HTTP %i', (st) => {
+    expect(isTransientError(new JmapHttpError(st, 'call'))).toBe(false);
+  });
+
+  it('retries network failures, not plain errors', () => {
+    expect(isTransientError(new TypeError('fetch failed'))).toBe(true);
+    expect(isTransientError(new Error('boom'))).toBe(false);
+  });
 });

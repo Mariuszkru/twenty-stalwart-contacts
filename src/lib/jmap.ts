@@ -97,3 +97,9 @@ export const failedIds = (response: any): string[] => [
   ...Object.keys(response?.notUpdated ?? {}),
   ...Object.keys(response?.notDestroyed ?? {}),
 ];
+
+// Worth a retry: rate limit, server error, or a network failure from fetch.
+// 401 and other 4xx are permanent and must not be retried in a loop.
+export const isTransientError = (e: unknown): boolean =>
+  (e instanceof JmapHttpError && (e.status === 429 || e.status >= 500)) ||
+  e instanceof TypeError;

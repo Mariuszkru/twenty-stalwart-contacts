@@ -8,6 +8,7 @@ import { emptyCounts, type MemberJob } from 'src/lib/member-sync';
 export const startReconcile = async (opts: {
   dryRun: boolean;
   onlyUserWorkspaceId?: string | null;
+  purge?: boolean;
 }) => {
   if (process.env.SYNC_ENABLED === 'false') return { status: 'disabled' as const };
 
@@ -26,6 +27,7 @@ export const startReconcile = async (opts: {
       cursor: null,
       dryRun: opts.dryRun,
       counts: emptyCounts(),
+      ...(opts.purge ? { purge: true } : {}),
     }));
 
   if (jobs.length) {

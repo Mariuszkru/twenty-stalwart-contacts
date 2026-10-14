@@ -8,7 +8,7 @@ import {
 
 import { SYNC_MEMBER_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { evaluateEligibility } from 'src/lib/eligibility';
-import { assertHttps, fetchSession, JmapHttpError, jmapCall } from 'src/lib/jmap';
+import { assertHttps, fetchSession, isTransientError, JmapHttpError, jmapCall } from 'src/lib/jmap';
 import { runMemberStep, type MemberJob } from 'src/lib/member-sync';
 import { recordOutcome } from 'src/lib/health-store';
 import { existingPersonIds, fetchPeopleByIds, fetchPeoplePage } from 'src/lib/twenty-people';
@@ -59,7 +59,10 @@ export default defineLogicFunction({
       hasStalwartConnection: true,
     });
 
-    if (globalPredicates && decision.status !== 'halt-all') {
+    // Purge wipes this member's synced cards; it never needs access to Person.
+    if (job.purge) {
+      decision = { status: 'clear', reason: 'purge-requested' };
+    } else if (globalPredicates && decision.status !== 'halt-all') {
       decision = { status: 'halt-all', reason: 'row-level-predicates' };
     }
 
@@ -109,11 +112,7 @@ export default defineLogicFunction({
         return { status: 'auth-error' };
       }
 
-      const transient =
-        (e instanceof JmapHttpError && (e.status === 429 || e.status >= 500)) ||
-        e instanceof TypeError; // network failure from fetch
-
-      if (transient) throw new RetryableLogicFunctionError('Stalwart temporarily unavailable');
+      if (isTransientError(e)) throw new RetryableLogicFunctionError('Stalwart temporarily unavailable');
 
       throw e;
     }
