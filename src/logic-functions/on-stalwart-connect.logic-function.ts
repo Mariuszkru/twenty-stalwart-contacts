@@ -4,8 +4,10 @@ import { getConnection } from 'twenty-sdk/logic-function';
 import { ON_STALWART_CONNECT_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identifiers';
 import { addEntry } from 'src/lib/connection-registry';
 import { readRegistry, writeRegistry } from 'src/lib/connections';
+import { queueFullSyncFor } from 'src/lib/start-reconcile';
 
-// Runs right after a member adds a Stalwart connection. Records id and owner only.
+// Runs right after a member adds a Stalwart connection: records id and owner only
+// (no token) and queues that member's first full sync.
 export default defineLogicFunction({
   universalIdentifier: ON_STALWART_CONNECT_UNIVERSAL_IDENTIFIER,
   name: 'on-stalwart-connect',
@@ -22,6 +24,9 @@ export default defineLogicFunction({
       }),
     );
 
-    return { status: 'registered', visibility: c.visibility };
+    // First sync starts now instead of waiting for the nightly reconcile.
+    const queued = await queueFullSyncFor(c);
+
+    return { status: 'registered', syncQueued: queued, visibility: c.visibility };
   },
 });

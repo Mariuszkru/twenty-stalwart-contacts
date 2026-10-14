@@ -48,3 +48,28 @@ export const startReconcile = async (opts: {
     ...(opts.dryRun ? { jobs: jobs.map((j) => ({ m: j.workspaceMemberId, c: j.connectionId })) } : {}),
   };
 };
+
+// Full sync for one connection right away (used after a member connects or reconnects).
+export const queueFullSyncFor = async (connection: {
+  id: string;
+  workspaceMemberId: string | null;
+}): Promise<boolean> => {
+  if (process.env.SYNC_ENABLED === 'false' || !connection.workspaceMemberId) return false;
+
+  const job: MemberJob = {
+    workspaceMemberId: connection.workspaceMemberId,
+    connectionId: connection.id,
+    phase: 'upsert',
+    cursor: null,
+    dryRun: false,
+    counts: emptyCounts(),
+  };
+
+  await enqueueJobs({
+    logicFunctionUniversalIdentifier: SYNC_MEMBER_UNIVERSAL_IDENTIFIER,
+    payloads: [job as unknown as Record<string, unknown>],
+    retryLimit: 2,
+  });
+
+  return true;
+};
