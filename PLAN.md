@@ -1,6 +1,6 @@
 # Plan: synchronizacja kontaktów Twenty → Stalwart (JMAP)
 
-Status: plan, bez implementacji. Data ustalenia: 2026-10-14.
+Status: fazy 0-5 zaimplementowane i sprawdzone na żywo (2026-10-14), z wyjątkami w `docs/spikes.md`. Pozostaje faza 6 (utwardzenie). Plan zaktualizowany o zmianę mechanizmu logowania (D6): OAuth zamiast haseł `USER`.
 Implementacja: w Claude Code, według faz z sekcji 9. Zasady pracy: `CLAUDE.md`.
 
 ## 1. Cel i zakres
@@ -36,7 +36,7 @@ Poza zakresem v1: kierunek Stalwart → Twenty, firmy jako osobne karty, zdjęci
 | D3 | Zapis przez JMAP for Contacts (JSContact), nie CardDAV | Wymóg użytkownika. |
 | D4 | Ocena widoczności w aplikacji, per rola (nie per rekord) | Brak row-level i rekordów prywatnych. Wystarczy sprawdzić rolę i pola. |
 | D5 | Fail closed | Jeśli nie umiemy jednoznacznie ustalić dostępu, nie wysyłamy nic i czyścimy książkę. |
-| D6 | Każdy użytkownik sam wpisuje w CRM swoje dane logowania do Stalwarta (zmienne `USER`, `isSecret`). Nie ma wspólnego hasła ani konta serwisowego, a administrator nie ustawia danych cudzych kont | Udokumentowane w SDK: wartości zmiennych `USER` należą do członka, admin nie może ich ustawić. Impersonacja (`<cel>%<impersonator>`) jest nieudokumentowana, odłożona. |
+| D6 | Każdy użytkownik sam autoryzuje swoje konto Stalwarta przez połączenie OAuth (`defineConnectionProvider`, zakres tylko kontaktów, token per członek). Nie ma wspólnego hasła ani konta serwisowego, a administrator nie autoryzuje cudzych kont | Spike S7: zmiennych `USER` nie da się w Twenty 2.47 wpisać (brak UI, komponent nie może ich zapisać). Spike S10: Stalwart ma serwer OAuth (PKCE, refresh, scope `contacts`), a token Bearer działa na `/jmap`. Połączenie poczty z Ustawień Twenty jest osobne i niedostępne dla aplikacji. |
 | D7 | Jedna aplikacja Twenty, logic functions | Wymóg: bez dodatkowego kontenera. |
 | D8 | `uid` karty = `urn:uuid:<person.id>` | Deterministyczna tożsamość, bez tabeli mapowań. |
 | D9 | Bez nowych pól na `Person` w MVP | Unikamy pętli zdarzeń i dodatkowych uprawnień. |
@@ -51,13 +51,12 @@ Wszystko działa wewnątrz serwera Twenty jako aplikacja (SDK `twenty-sdk`, `twe
 | `application-config.ts` | `defineApplication` | Zmienne konfiguracyjne (sekcja 8). |
 | `roles/default-role.ts` | `defineApplicationRole` | Minimalna rola aplikacji: odczyt `Person` i `Company`, odczyt ról/członków (do ustalenia w S2). |
 | `health-check.ts` | `defineHealthCheck` | Sprawdza JMAP session i logowanie, pokazuje baner błędu przy problemie. |
-| `sync-person-events` | `defineLogicFunction` + `databaseEventTriggerSettings` (`person.*`, `batchMode`) | Zdarzenia osób: fan-out zadań per uprawniony członek. |
+| `sync-person-{created,updated,restored,deleted,destroyed}` | `defineLogicFunction` + `databaseEventTriggerSettings` (jedno zdarzenie na funkcję, `batchMode`; bez wildcardu) | Zdarzenia osób: fan-out zadań per uprawniony członek. |
 | `sync-company-events` | `defineLogicFunction` + `company.updated` (`updatedFields: ['name']`) | Odświeża karty osób z daną firmą (pole `organizations`). |
 | `sync-member` | `defineLogicFunction` (wywoływana przez `enqueueJobs`) | Wykonawca: sprawdza uprawnienia członka, robi upsert/usuwanie dla porcji osób. |
 | `reconcile-all` | `defineLogicFunction` + `cronTriggerSettings` | Nocny pełny reconcile per członek (łańcuch jobów z kursorem). |
-| `sync-now` | `defineLogicFunction` + `httpRouteTriggerSettings` / `workflowActionTriggerSettings` | Ręczne uruchomienie (faza 5). |
-| `front-components/member-settings` + `defineSettingsMenuItem` (zakres: ustawienia członka) | front component | Strona, na której użytkownik wpisuje własny login i hasło oraz sprawdza połączenie (sekcja 8). Faza 5, wcześniej wystarcza strona zmiennych aplikacji. |
-| `test-connection` | `defineLogicFunction` + `httpRouteTriggerSettings` | Uruchomiona jako członek, testuje JMAP session z jego własnymi danymi. |
+| `sync-now` | `defineLogicFunction` + `httpRouteTriggerSettings` (`POST /s/stalwart/sync-now`) | Ręczne uruchomienie dla wywołującego członka (`?dryRun=true` = podgląd). |
+| `connection-providers/stalwart-connection` | `defineConnectionProvider` (OAuth) | Użytkownik klika "Add connection" w ustawieniach aplikacji. `client_id`/`client_secret` wpisuje admin serwera Twenty jako `serverVariables`. Zastępuje stronę ustawień członka. |
 | `lib/` | zwykłe moduły TS | `jmap.ts`, `jscontact.ts`, `eligibility.ts`, `twenty-reader.ts`, `labels.ts`. |
 
 Limity platformy, które determinują projekt (z dokumentacji Twenty):
@@ -75,7 +74,7 @@ Członek jest **uprawniony do synchronizacji**, gdy jednocześnie:
 1. jego rola czyta `Person`: `canReadAllObjectRecords` albo wyjątek obiektowy z `canReadObjectRecords: true` dla `person` (wyjątek z `false` wygrywa),
 2. obiekt `person` ma `readability: OPEN`,
 3. rola nie ma żadnych row-level predicates dla `person` (po zmianie planu lub ustawień),
-4. ma skonfigurowane `STALWART_APP_PASSWORD` (i opcjonalnie `STALWART_LOGIN`).
+4. ma połączenie OAuth ze Stalwartem (`stalwart`), którego właścicielem jest ten członek i które nie ma `authFailedAt`.
 
 Pola: karta zawiera tylko pola, których rola nie ma ukrytych (`canReadFieldValue: false`).
 
@@ -158,33 +157,27 @@ Zmienne `WORKSPACE` (`applicationVariables`):
 - `ADDRESS_BOOK_NAME` (domyślnie `CRM`).
 - `SYNC_ENABLED` (BOOLEAN, domyślnie `true`), wyłącznik awaryjny.
 
-Zmienne `USER` (każdy członek ustawia własne):
-- `STALWART_LOGIN` (opcjonalna, domyślnie `userEmail` członka).
-- `STALWART_APP_PASSWORD` (`isSecret`, `isRequired`).
+`serverVariables` (wpisuje admin serwera Twenty w rejestracji aplikacji):
+- `STALWART_OAUTH_CLIENT_ID`, `STALWART_OAUTH_CLIENT_SECRET` (`isSecret`): klient OAuth zarejestrowany w Stalwarcie (redirect URI `https://<twenty>/auth/apps/callback`, `client_secret_post`, zakresy `urn:ietf:params:oauth:scope:contacts` i `offline_access`).
 
-Cron odczytuje wartości wszystkich członków przez `MetadataApiClient({ runAs: 'application' })` i zapytanie `myUserApplicationVariables` (zweryfikować w S7).
+Zmiennych `USER` z hasłem nie ma (decyzja D6).
 
-### Konfiguracja danych logowania przez użytkownika
+### Połączenie członka
 
-- Każdy członek wpisuje własne dane w CRM, we własnych ustawieniach aplikacji. Nikt inny, w tym administrator, nie może ich ustawić. Hasło jest zmienną `isSecret` (szyfrowaną w spoczynku) i aplikacja czyta je wyłącznie po stronie serwera, w logic functions. Wartości danego członka służą tylko do jego własnego konta Stalwarta.
-- Zalecane: hasło aplikacji (app password) konta Stalwarta, a nie główne hasło skrzynki. Instrukcja dla użytkownika trafia do README.
-- Strona ustawień członka (faza 5): login (opcjonalny, domyślnie e-mail członka), hasło, przycisk "Sprawdź połączenie", status. Zapis przez `updateMyUserApplicationVariable` (wymaga sesji samego członka). "Sprawdź połączenie" wywołuje `test-connection`, która jako ten członek czyta jego zmienne z `process.env` i próbuje pobrać JMAP session. Front components nie dostają sekretnych zmiennych `USER`, więc test musi iść przez logic function.
-- Stany członka (w `kv`, klucz `member:<id>:status`, bez sekretów):
-  - `nieskonfigurowany` (brak hasła): członek pomijany, to nie jest błąd i nie blokuje innych;
-  - `połączono`;
-  - `błąd uwierzytelnienia` (401): książki nie ruszamy, nie ponawiamy w pętli, próba dopiero po zmianie danych lub przy najbliższym reconcile;
-  - `brak dostępu do Person`: książka wyczyszczona (sekcja 5).
-- Dokumentacja Twenty zaznacza, że ostrzeżenia o brakującej konfiguracji osobistej jeszcze nie istnieją, więc status per członek pokazujemy sami.
-- Wdrożenie: każdy członek musi jednorazowo skonfigurować połączenie. Dopóki tego nie zrobi, nic się dla niego nie synchronizuje.
+- Każdy członek sam dodaje połączenie: Ustawienia aplikacji, zakładka General, "Add connection", logowanie w Stalwarcie. Token (z odświeżaniem) czyta wyłącznie kod po stronie serwera przez `listConnections` / `getConnection`.
+- Połączenie dodane z UI ma widoczność `workspace` (współdzieloną), więc kod bierze tylko połączenie, którego właścicielem jest członek zadania (`workspaceMemberId`).
+- Stany członka (w `kv`, klucz `member:<id>:status`, bez sekretów): `unconfigured` (brak połączenia, pomijany, nie błąd), `syncing`, `connected`, `auth-error` (401 lub `authFailedAt`, bez retry w pętli), `cleared`, `halted`.
+- Podsumowanie dla health checka w `kv` pod `sync:health`: zatrzymanie synchronizacji, lista członków z `auth-error`, czas ostatniego udanego sync.
+- Wymaga flagi `ROLES` w roli aplikacji (odczyt ról i uprawnień do pól, spike S2/S6). Flaga obejmuje też zarządzanie rolami, kod tylko czyta.
 
 ## 9. Fazy i kryteria akceptacji
 
 **Faza 0. Spike'i (patrz sekcja 10).** Wynik: `docs/spikes.md` z odpowiedziami i decyzjami. Kryterium: S1, S2, S3, S7 rozstrzygnięte, bo mogą zmienić projekt.
 
 **Faza 1. Szkielet i połączenie.**
-- `npx create-twenty-app`, konfiguracja zmiennych, rola aplikacji, health check (JMAP session + uwierzytelnienie).
+- `twenty app init` (`create-twenty-app` jest przestarzałe), konfiguracja zmiennych, rola aplikacji, health check.
 - Funkcja `jmap-smoke-test` tworzy jedną kartę testową w książce "CRM" bieżącego członka.
-- Dane logowania wpisuje sam użytkownik w CRM (na tym etapie przez stronę zmiennych aplikacji). Smoke test używa wyłącznie zmiennych członka, który go uruchomił.
+- Połączenie OAuth dodaje sam użytkownik w CRM. Smoke test używa wyłącznie połączenia członka, który go uruchomił.
 - Kryterium: karta widoczna w kliencie CardDAV i na iPhonie, polskie znaki poprawne.
 
 **Faza 2. Biblioteki rdzenia (z testami jednostkowymi).**
@@ -204,7 +197,7 @@ Cron odczytuje wartości wszystkich członków przez `MetadataApiClient({ runAs:
 
 **Faza 5. Cron i ręczne uruchamianie.**
 - Nocny reconcile, `sync-now` (HTTP route / workflow action / command menu), podgląd statusu.
-- Strona ustawień członka (login, hasło, "Sprawdź połączenie", status: nieskonfigurowany / połączono / błąd uwierzytelnienia) oraz funkcja `test-connection`.
+- Status członka i podsumowanie w `kv`, health check (ERROR przy zatrzymaniu, WARNING przy błędzie uwierzytelnienia). Strona ustawień członka i `test-connection` odpadły (zastępuje je połączenie OAuth).
 - Kryterium: nocny przebieg bez ingerencji, ręczne uruchomienie działa.
 
 **Faza 6. Utwardzenie.**
@@ -221,7 +214,8 @@ Cron odczytuje wartości wszystkich członków przez `MetadataApiClient({ runAs:
 | S4 | Uwierzytelnianie do JMAP: Basic z hasłem aplikacji, wymagane uprawnienia konta. | Faza 1. |
 | S5 | Nazwy zdarzeń `person.restored`/`deleted`/`destroyed`, działanie wildcardu `person.*` z `batchMode`, jak filtruje `updatedFields` dla relacji (`company` vs `companyId`). | Faza 4. |
 | S6 | Jak odczytać uprawnienia do pól roli (Metadata API)? | Pola w karcie. |
-| S7 | Odczyt `myUserApplicationVariables` z crona i zdarzeń (czy sekrety są zwracane jawnie dla `runAs: 'application'`), zapis przez `updateMyUserApplicationVariable` z front component, czy `process.env` w funkcji uruchomionej przez członka zawiera jego sekret. | Dane logowania wpisywane przez każdego użytkownika samodzielnie. |
+| S7 | Zapis zmiennych `USER` przez członka. | Wynik: niemożliwy w Twenty 2.47 (patrz D6). |
+| S10 | OAuth do Stalwarta przez połączenie aplikacji. | Zastępuje hasła `USER`. Wynik: działa. |
 | S8 | Czy jest zdarzenie lub sposób wykrycia zmiany roli/członkostwa. | Skrócenie okna ekspozycji. |
 | S9 | Format telefonu i polskie znaki w iOS/Android przez CardDAV. | Jakość danych. |
 
