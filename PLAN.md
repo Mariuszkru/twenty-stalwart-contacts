@@ -201,8 +201,8 @@ Zmiennych `USER` z hasłem nie ma (decyzja D6).
 - Kryterium: nocny przebieg bez ingerencji, ręczne uruchomienie działa.
 
 **Faza 6. Utwardzenie.**
-- Retry/backoff, limity, logi bez danych osobowych i sekretów, obsługa dezaktywowanych członków, test niedostępności Stalwarta, dokumentacja (README, instrukcja dla użytkownika: jak wpisać hasło aplikacji), lista kontrolna testu na iPhonie.
-- Decyzja do podjęcia: zachowanie przy odinstalowaniu (domyślnie: nie kasujemy kart automatycznie, udostępniamy funkcję `purge`).
+- Retry/backoff, limity, logi bez danych osobowych i sekretów, obsługa dezaktywowanych członków, test niedostępności Stalwarta, dokumentacja (README, instrukcja dla użytkownika: jak dodać połączenie), lista kontrolna testu na iPhonie.
+- Zachowanie przy odinstalowaniu: nie kasujemy kart automatycznie, funkcja `purge-my-cards` (HTTP, podgląd domyślnie, `?confirm=true` kasuje) jest zaimplementowana.
 
 ## 10. Spike'i (do rozstrzygnięcia na początku)
 
