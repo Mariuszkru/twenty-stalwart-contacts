@@ -66,12 +66,13 @@ const baseJob = (over: Partial<MemberJob> = {}): MemberJob => ({
   ...over,
 });
 
-const deps = (srv: ReturnType<typeof fakeServer>, pages: any[], alive: string[] = []): StepDeps => ({
+const deps = (srv: ReturnType<typeof fakeServer>, pages: any[], alive: string[] = [], people: any[] = []): StepDeps => ({
   call: srv.call,
   session: { accountId: 'r', maxObjectsInSet: 500 },
   bookName: 'CRM',
   fetchPage: async (after) => pages[after ? Number(after) : 0],
   existingIds: async (ids) => new Set(ids.filter((i) => alive.includes(i))),
+  fetchByIds: async (ids) => people.filter((p) => ids.includes(p.id)),
 });
 
 describe('runMemberStep upsert', () => {
@@ -195,5 +196,61 @@ describe('anyRoleHasPersonPredicates', () => {
 
   it('ignores other objects and empty roles', () => {
     expect(anyRoleHasPersonPredicates([{ id: 'r', rowLevelPermissionPredicates: [{ objectMetadataId: 'x' }] }, { id: 's' }], person)).toBe(false);
+  });
+});
+
+describe('runMemberStep ids phase (events)', () => {
+  const job = (op: 'upsert' | 'delete', ids: string[], over: Partial<MemberJob> = {}) =>
+    baseJob({ phase: 'ids', op, personIds: ids, ...over });
+
+  it('upsert creates a new person and updates a changed one', async () => {
+    const srv = fakeServer();
+    await runMemberStep(job('upsert', [ID(1)]), eligible, deps(srv, [], [], [person(1)]));
+    expect(Object.keys(srv.cards)).toHaveLength(1);
+    const r = await runMemberStep(job('upsert', [ID(1)]), eligible, deps(srv, [], [], [person(1, 'Nowak')]));
+    expect(r.counts.updated).toBe(1);
+    expect(r.outcome).toBe('done');
+    expect(r.next).toBeUndefined();
+  });
+
+  it('upsert of a person that no longer exists removes the card', async () => {
+    const srv = fakeServer({ a: { uid: uid(1), addressBookIds: { b1: true } } });
+    const r = await runMemberStep(job('upsert', [ID(1)]), eligible, deps(srv, [], [], []));
+    expect(r.counts.destroyed).toBe(1);
+    expect(srv.cards).toEqual({});
+  });
+
+  it('delete removes the card and leaves personal contacts', async () => {
+    const srv = fakeServer({
+      a: { uid: uid(1), addressBookIds: { b1: true } },
+      mine: { uid: 'personal', addressBookIds: { b1: true } },
+    });
+    await runMemberStep(job('delete', [ID(1), 'personal']), eligible, deps(srv, []));
+    expect(Object.keys(srv.cards)).toEqual(['mine']);
+  });
+
+  it('delete is a no-op for unknown people and does not create the book', async () => {
+    const srv = fakeServer({}, []);
+    const r = await runMemberStep(job('delete', [ID(9)]), eligible, deps(srv, []));
+    expect(r.counts.destroyed).toBe(0);
+    expect(srv.log).not.toContain('AddressBook/set');
+  });
+
+  it('a member who lost access is cleared by the next event', async () => {
+    const srv = fakeServer({ a: { uid: uid(1), addressBookIds: { b1: true } } });
+    const r = await runMemberStep(
+      job('upsert', [ID(2)]),
+      { status: 'clear', reason: 'no-person-access' },
+      deps(srv, [], [], [person(2)]),
+    );
+    expect(r.outcome).toBe('cleared');
+    expect(srv.cards).toEqual({});
+  });
+
+  it('dry-run writes nothing', async () => {
+    const srv = fakeServer();
+    const r = await runMemberStep(job('upsert', [ID(1)], { dryRun: true }), eligible, deps(srv, [], [], [person(1)]));
+    expect(r.counts.created).toBe(1);
+    expect(srv.cards).toEqual({});
   });
 });

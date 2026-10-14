@@ -37,8 +37,11 @@ export const emptyCounts = (): Counts => ({
 export type MemberJob = {
   workspaceMemberId: string;
   connectionId: string;
-  phase: 'upsert' | 'delete';
+  phase: 'upsert' | 'delete' | 'ids';
   cursor: string | null;
+  // 'ids' phase (event path): specific people and what happened to them
+  personIds?: string[];
+  op?: 'upsert' | 'delete';
   dryRun: boolean;
   counts: Counts;
 };
@@ -53,6 +56,7 @@ export type StepDeps = {
     hasNextPage: boolean;
   }>;
   existingIds: (ids: readonly string[]) => Promise<Set<string>>;
+  fetchByIds: (ids: readonly string[]) => Promise<PersonInput[]>;
 };
 
 export type StepResult = {
@@ -125,6 +129,44 @@ export const runMemberStep = async (
       next: page.hasNextPage
         ? { ...job, cursor: page.endCursor, counts }
         : { ...job, phase: 'delete', cursor: null, counts },
+    };
+  }
+
+  if (job.phase === 'ids') {
+    const ids = job.personIds ?? [];
+    const bookId = await ensureAddressBook(call, session.accountId, bookName, job.dryRun || job.op === 'delete');
+    const existing = bookId ? await loadBook(call, session, bookId) : new Map();
+
+    if (job.op === 'delete') {
+      const r = await applyPlan(call, session, planDestroy(ids.map(personUid), existing), job.dryRun);
+
+      return { outcome: 'done', counts: add(job.counts, { destroyed: r.destroyed, failed: r.failed }) };
+    }
+
+    const people = await deps.fetchByIds(ids);
+    const found = new Set(people.map((p) => p.id));
+    const desired = new Map(
+      people.map((p) => [
+        personUid(p.id),
+        personToCard(p, { addressBookId: bookId ?? 'dry-run', hiddenFields: decision.hiddenFields }),
+      ]),
+    );
+    const plan = planSync(desired, existing, false);
+    // Requested but gone (deleted in the meantime): remove their card too.
+    plan.destroy.push(
+      ...planDestroy(ids.filter((id) => !found.has(id)).map(personUid), existing).destroy,
+    );
+    const r = await applyPlan(call, session, plan, job.dryRun);
+
+    return {
+      outcome: 'done',
+      counts: add(job.counts, {
+        created: r.created,
+        updated: r.updated,
+        destroyed: r.destroyed,
+        unchanged: plan.unchanged,
+        failed: r.failed,
+      }),
     };
   }
 

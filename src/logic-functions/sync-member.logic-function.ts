@@ -10,7 +10,7 @@ import { SYNC_MEMBER_UNIVERSAL_IDENTIFIER } from 'src/constants/universal-identi
 import { evaluateEligibility } from 'src/lib/eligibility';
 import { assertHttps, fetchSession, JmapHttpError, jmapCall } from 'src/lib/jmap';
 import { runMemberStep, type MemberJob } from 'src/lib/member-sync';
-import { existingPersonIds, fetchPeoplePage } from 'src/lib/twenty-people';
+import { existingPersonIds, fetchPeopleByIds, fetchPeoplePage } from 'src/lib/twenty-people';
 import { fetchPersonMetadata, fetchRoles } from 'src/lib/twenty-metadata';
 import { anyRoleHasPersonPredicates, snapshotsByMember } from 'src/lib/twenty-reader';
 
@@ -70,6 +70,7 @@ export default defineLogicFunction({
         bookName: process.env.ADDRESS_BOOK_NAME?.trim() || 'CRM',
         fetchPage: fetchPeoplePage,
         existingIds: existingPersonIds,
+        fetchByIds: fetchPeopleByIds,
       });
 
       if (result.next) {

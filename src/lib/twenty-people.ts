@@ -71,3 +71,33 @@ export const existingPersonIds = async (ids: readonly string[]): Promise<Set<str
 
   return found;
 };
+
+// People that belong to any of these companies (live people only). Used for company renames.
+export const fetchPersonIdsByCompanyIds = async (
+  companyIds: readonly string[],
+): Promise<string[]> => {
+  if (!companyIds.length) return [];
+
+  const ids: string[] = [];
+  let after: string | null = null;
+
+  for (;;) {
+    const res: any = await getClient().query({
+      people: {
+        __args: {
+          first: PAGE_SIZE,
+          ...(after ? { after } : {}),
+          filter: { companyId: { in: [...companyIds] } },
+        },
+        edges: { node: { id: true } },
+        pageInfo: { hasNextPage: true, endCursor: true },
+      },
+    } as any);
+
+    ids.push(...res.people.edges.map((e: any) => e.node.id as string));
+
+    if (!res.people.pageInfo.hasNextPage) return ids;
+
+    after = res.people.pageInfo.endCursor;
+  }
+};
