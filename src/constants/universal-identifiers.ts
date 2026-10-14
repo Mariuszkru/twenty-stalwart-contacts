@@ -1,0 +1,13 @@
+export const APP_DISPLAY_NAME = 'Stalwart Contacts';
+export const APP_DESCRIPTION = 'One-way sync of Twenty people to Stalwart address books via JMAP';
+export const APPLICATION_UNIVERSAL_IDENTIFIER = 'e77e20a9-6a17-4612-bd79-96e004ad4c08';
+export const DEFAULT_ROLE_UNIVERSAL_IDENTIFIER = '3e218e53-ebc4-4931-9804-e74ba026dc5f';
+export const HEALTH_CHECK_UNIVERSAL_IDENTIFIER = '95f88624-beb3-491e-add2-c3f6f96224e5';
+
+export const VAR_STALWART_JMAP_URL_ID = 'e3dd75e7-b401-4ef1-bc72-5749f943bbf4';
+export const VAR_ADDRESS_BOOK_NAME_ID = 'a45c6916-b222-4270-bfa4-8321ea2c4e35';
+export const VAR_SYNC_ENABLED_ID = '576e94fc-8ac9-433f-a3a6-3f9c373ffdb4';
+export const VAR_STALWART_LOGIN_ID = '24bf3bcf-15f9-4182-a110-722aa61ee06a';
+export const VAR_STALWART_APP_PASSWORD_ID = 'af44fdd6-5813-4f91-aee3-3fcbc02facaf';
+export const JMAP_SMOKE_TEST_UNIVERSAL_IDENTIFIER = '0f0d6d07-3a53-4e0b-9a6c-5b6cf5f1c7a1';
+export const STALWART_CONNECTION_PROVIDER_UNIVERSAL_IDENTIFIER = 'cf49f468-e39a-44d9-bf4f-d6a9f077a48a';
