@@ -203,6 +203,7 @@ Zmiennych `USER` z hasłem nie ma (decyzja D6).
 
 **Faza 6. Utwardzenie.**
 - Retry/backoff, limity, logi bez danych osobowych i sekretów, obsługa dezaktywowanych członków, test niedostępności Stalwarta, dokumentacja (README, instrukcja dla użytkownika: jak dodać połączenie), lista kontrolna testu na iPhonie.
+- Rozłączenie ostatniego połączenia członka (hook `onDisconnect`) usuwa jego karty `urn:uuid:` tokenem, który jeszcze działa; błąd nie blokuje rozłączenia. Aplikacja nie może zabronić usunięcia połączenia (uprawnienie Applications w Twenty).
 - Zachowanie przy odinstalowaniu: nie kasujemy kart automatycznie, funkcja `purge-my-cards` (HTTP, podgląd domyślnie, `?confirm=true` kasuje) jest zaimplementowana.
 
 ## 10. Spike'i (do rozstrzygnięcia na początku)

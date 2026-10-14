@@ -60,6 +60,8 @@ Gdyby połączenie było prywatne, byłoby niewidoczne dla crona i zdarzeń bazy
 
 ## Usuwanie kart i odinstalowanie
 
+**Usunięcie połączenia usuwa karty.** Gdy członek (albo administrator) rozłączy ostatnie połączenie Stalwart, aplikacja zdąży jeszcze jego tokenem usunąć z książki CRM karty zsynchronizowane z Twenty. Błąd tego kroku nie blokuje rozłączenia. Nie da się zablokować samego usunięcia połączenia: może je wykonać każdy, kto ma uprawnienie Applications.
+
 Odinstalowanie aplikacji **nie usuwa kart** ze Stalwarta. Żeby usunąć karty synchronizowane z Twenty z własnej książki CRM:
 
 - `POST <adres funkcji>/stalwart/purge` pokazuje, co zostałoby usunięte.
