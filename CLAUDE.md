@@ -10,7 +10,7 @@ Pełny plan, fazy i kryteria akceptacji: `PLAN.md`. Przeczytaj go przed rozpocz�
 2. Synchronizacja per użytkownik: książka "CRM" w koncie każdego uprawnionego członka workspace'u.
 3. Komunikacja ze Stalwartem tylko przez JMAP (`ContactCard`, `AddressBook`, format JSContact). Nie wysyłamy vCardów. Jeśli spike S3 pokaże, że iOS nie przyjmuje wyniku, o zmianie transportu decyduje użytkownik.
 4. Wszystko działa wewnątrz aplikacji Twenty (logic functions). Żadnych dodatkowych kontenerów ani serwisów.
-5. Każdy użytkownik sam autoryzuje swoje konto Stalwarta przez połączenie OAuth w CRM (`defineConnectionProvider`, provider `stalwart`, zakres `urn:ietf:params:oauth:scope:contacts` i `offline_access`, token per członek). Nie ma wspólnego hasła, konta serwisowego ani autoryzacji cudzych kont przez administratora. Brak połączenia oznacza, że członek jest pomijany (to nie błąd). Zmienne `USER` z hasłem odpadły (spike S7: w Twenty 2.47 nie ma UI do ich wpisania, a komponent nie może ich zapisać).
+5. Każdy użytkownik sam autoryzuje swoje konto Stalwarta przez połączenie OAuth w CRM (`defineConnectionProvider`, provider `stalwart`, zakres `urn:ietf:params:oauth:scope:contacts` i `offline_access`, token per członek). Nie ma wspólnego hasła, konta serwisowego ani autoryzacji cudzych kont przez administratora. Połączenie musi mieć widoczność `user` (prywatne); współdzielone (`workspace`) jest odrzucane, a health check ostrzega. Prywatne połączenia są niewidoczne dla crona i zdarzeń, więc aplikacja prowadzi w `kv` rejestr ich identyfikatorów (hooki `onConnect` / `onDisconnect`, bez tokenów). Brak połączenia oznacza, że członek jest pomijany (to nie błąd). Zmienne `USER` z hasłem odpadły (spike S7: w Twenty 2.47 nie ma UI do ich wpisania, a komponent nie może ich zapisać).
 6. `uid` karty = `urn:uuid:<person.id>`. Bez własnej tabeli mapowań i bez nowych pól na `Person` w MVP.
 7. Usunięcie osoby w Twenty (do kosza lub trwałe) usuwa jej kartę z książki "CRM" każdego uprawnionego członka. Przywrócenie z kosza tworzy kartę ponownie. Zdarzenie to szybka ścieżka, a gwarancję daje faza usuwania w reconcile (szczegóły: `PLAN.md`, sekcja 6.E).
 
@@ -21,7 +21,7 @@ Pełny plan, fazy i kryteria akceptacji: `PLAN.md`. Przeczytaj go przed rozpocz�
 - Pola ukryte przed rolą (`canReadFieldValue: false`) nie trafiają do karty.
 - Dotykamy wyłącznie kart z `uid` w formacie `urn:uuid:` w książce "CRM". Prywatne kontakty użytkownika zostają nietknięte.
 - Sekrety: tokeny OAuth tylko w połączeniach Twenty (`listConnections` / `getConnection`), a `client_id` i `client_secret` klienta OAuth tylko w `serverVariables` (`isSecret`). Nigdy w `kv`, logach, odpowiedziach HTTP, komunikatach błędów, plikach repozytorium ani testach.
-- Token danego członka służy wyłącznie do zapisu w jego własnym koncie Stalwarta. Używaj tylko połączenia, którego `workspaceMemberId` zgadza się z członkiem zadania, niezależnie od jego widoczności (`workspace` lub `user`). Nigdy nie używaj tokenu jednego członka do operacji w koncie innego.
+- Token danego członka służy wyłącznie do zapisu w jego własnym koncie Stalwarta. Używaj tylko połączenia prywatnego (`visibility: 'user'`), którego `workspaceMemberId` zgadza się z członkiem zadania. Nigdy nie używaj tokenu jednego członka do operacji w koncie innego.
 - Logi: identyfikatory i liczniki, bez imion, e-maili i telefonów.
 - `STALWART_JMAP_URL` musi mieć schemat `https`.
 - Testy wyłącznie na kontach testowych. Nie dotykaj produkcyjnej skrzynki.

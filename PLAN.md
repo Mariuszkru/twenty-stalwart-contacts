@@ -165,7 +165,8 @@ Zmiennych `USER` z hasłem nie ma (decyzja D6).
 ### Połączenie członka
 
 - Każdy członek sam dodaje połączenie: Ustawienia aplikacji, zakładka General, "Add connection", logowanie w Stalwarcie. Token (z odświeżaniem) czyta wyłącznie kod po stronie serwera przez `listConnections` / `getConnection`.
-- Połączenie dodane z UI ma widoczność `workspace` (współdzieloną), więc kod bierze tylko połączenie, którego właścicielem jest członek zadania (`workspaceMemberId`).
+- Wymagana widoczność `user` (prywatna). Połączenia `workspace` są odrzucane (stan `shared-connection`, ostrzeżenie w health checku), bo każdy członek widziałby cudzy token na liście. Twenty 2.47 może nie oferować wyboru widoczności; wtedy sync czeka na nowszą wersję (decyzja użytkownika 2026-10-14).
+- Prywatne połączenia są niewidoczne dla crona i zdarzeń, więc rejestr ich identyfikatorów (`connections:index` w `kv`, tylko id i właściciel) prowadzą hooki `onConnect` / `onDisconnect`. Zadania biorą token przez `getConnection(id)` i sprawdzają właściciela.
 - Stany członka (w `kv`, klucz `member:<id>:status`, bez sekretów): `unconfigured` (brak połączenia, pomijany, nie błąd), `syncing`, `connected`, `auth-error` (401 lub `authFailedAt`, bez retry w pętli), `cleared`, `halted`.
 - Podsumowanie dla health checka w `kv` pod `sync:health`: zatrzymanie synchronizacji, lista członków z `auth-error`, czas ostatniego udanego sync.
 - Wymaga flagi `ROLES` w roli aplikacji (odczyt ról i uprawnień do pól, spike S2/S6). Flaga obejmuje też zarządzanie rolami, kod tylko czyta.

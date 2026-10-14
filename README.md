@@ -48,7 +48,9 @@ Każdy członek robi to sam, raz:
 
 Hasła do skrzynki nigdzie nie wpisujesz. Aplikacja dostaje token tylko do kontaktów, który odświeża się sam. Członek bez połączenia jest pomijany (to nie błąd). Gdy token przestanie działać, health check pokaże ostrzeżenie i trzeba połączyć konto ponownie.
 
-Uwaga: połączenie dodane z interfejsu ma widoczność współdzieloną w workspace'ie. Aplikacja i tak używa wyłącznie połączenia, którego właścicielem jest dany członek, nigdy cudzego.
+**Połączenie musi być prywatne.** Aplikacja używa wyłącznie połączeń z widocznością `user` ("Just for me"), których właścicielem jest dany członek. Połączenie współdzielone w workspace'ie (`workspace`) jest odrzucane, bo każdy członek Twenty widziałby je na liście. Widoczności nie da się ustawić z poziomu aplikacji. W Twenty 2.47 okno "Add connection" może nie oferować wyboru i tworzyć tylko połączenia współdzielone. Wtedy synchronizacja nie startuje, a health check pokazuje ostrzeżenie, dopóki Twenty nie pozwoli dodać połączenia prywatnego.
+
+Prywatne połączenia są niewidoczne dla crona i zdarzeń bazy, dlatego aplikacja prowadzi w `kv` rejestr identyfikatorów połączeń (id i właściciel, bez tokenów), uzupełniany przez hook po dodaniu połączenia i czyszczony po jego usunięciu.
 
 ## Ręczne uruchamianie
 
@@ -77,6 +79,7 @@ Usunięcie jest trwałe po stronie Stalwarta (bez kosza). Karta usunięta ręczn
 |-------|--------------|
 | Przycisk Add connection jest nieaktywny | Brak `client_id` / `client_secret` w zmiennych serwera aplikacji. |
 | Health check: ERROR "Contact sync is stopped" | Niewspierana konfiguracja uprawnień (predykaty wierszowe na `Person` albo `Person` nie jest otwarty). Cofnij ją. |
+| Health check: WARNING "connection must be private" | Połączenie ma widoczność współdzieloną. Usuń je i dodaj ponownie jako "Just for me" (o ile Twenty to oferuje). |
 | Health check: WARNING o połączeniu | Członek musi ponownie dodać połączenie Stalwart. |
 | Brak książki CRM | Czy dodano połączenie, czy `SYNC_ENABLED` nie jest `false`, czy rola członka czyta `Person`. |
 | Funkcja zwraca błąd uwierzytelnienia | Uruchomiono ją kluczem API zamiast jako członek. |
