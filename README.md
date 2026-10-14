@@ -44,7 +44,7 @@ Każdy członek robi to sam, raz:
 
 1. W Twenty otwórz ustawienia aplikacji **Stalwart Contacts**, zakładka **General**.
 2. Kliknij **Add connection** i zaloguj się swoim kontem Stalwart.
-3. Po chwili książka **CRM** pojawi się na koncie. Pierwszy pełny sync trwa do nocnego reconcile albo do ręcznego uruchomienia (poniżej).
+3. Zaraz po dodaniu połączenia aplikacja sama uruchamia pierwszy pełny sync, więc książka **CRM** pojawia się na koncie po chwili (kilkadziesiąt sekund przy kilkunastu osobach).
 
 Hasła do skrzynki nigdzie nie wpisujesz. Aplikacja dostaje token tylko do kontaktów, który odświeża się sam. Członek bez połączenia jest pomijany (to nie błąd). Gdy token przestanie działać, health check pokaże ostrzeżenie i trzeba połączyć konto ponownie.
 
