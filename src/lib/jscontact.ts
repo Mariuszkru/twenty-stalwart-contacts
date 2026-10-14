@@ -110,7 +110,7 @@ export const personToCard = (
 
   if (email) card.emails = { e1: { address: email, pref: 1 } };
   if (phone) card.phones = { p1: { number: phone } };
-  if (title) card.titles = { t1: { name: title } };
+  if (title) card.titles = { t1: { name: title, kind: 'title' } };
   if (org) card.organizations = { o1: { name: org } };
     if (link) card.links = { l1: { uri: link } };
   if (keywordLabels.length) {

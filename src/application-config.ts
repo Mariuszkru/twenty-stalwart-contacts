@@ -5,9 +5,7 @@ import {
   APP_DISPLAY_NAME,
   APPLICATION_UNIVERSAL_IDENTIFIER,
   VAR_ADDRESS_BOOK_NAME_ID,
-  VAR_STALWART_APP_PASSWORD_ID,
   VAR_STALWART_JMAP_URL_ID,
-  VAR_STALWART_LOGIN_ID,
   VAR_SYNC_ENABLED_ID,
 } from 'src/constants/universal-identifiers';
 
@@ -52,20 +50,6 @@ export default defineApplication({
       scope: 'WORKSPACE',
       isSecret: false,
       value: 'true',
-    },
-    STALWART_LOGIN: {
-      universalIdentifier: VAR_STALWART_LOGIN_ID,
-      label: 'Stalwart login',
-      description: 'Optional. Defaults to your Twenty e-mail.',
-      scope: 'USER',
-      isSecret: false,
-    },
-    STALWART_APP_PASSWORD: {
-      universalIdentifier: VAR_STALWART_APP_PASSWORD_ID,
-      label: 'Stalwart app password',
-      description: 'App password of your own Stalwart account.',
-      scope: 'USER',
-      isSecret: true,
     },
   },
 });

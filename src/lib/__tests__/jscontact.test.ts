@@ -32,6 +32,8 @@ describe('personToCard', () => {
     expect(c.emails.e1.address).toBe('z@example.test');
     expect(c.phones.p1.number).toBe('+48600000000');
     expect(c.titles.t1.name).toBe('CTO');
+    // Stalwart adds kind: 'title' itself; sending it keeps repeated syncs a no-op
+    expect(c.titles.t1.kind).toBe('title');
     expect(c.organizations.o1.name).toBe('Firma & "Syn" <sp.>');
     expect(c.links.l1.uri).toBe('https://example.test/in/x');
     expect(c.keywords).toEqual({ Klient: true, 'Wpływowy / Rekomendujący': true });

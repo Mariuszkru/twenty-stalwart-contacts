@@ -112,3 +112,15 @@ export const snapshotsByMember = (
     ]),
   );
 };
+
+// A person-level row predicate on ANY role is an unsupported config: stop sync for everyone.
+export const anyRoleHasPersonPredicates = (
+  roles: readonly RawRole[],
+  person: PersonMetadata,
+): boolean =>
+  roles.some((r) =>
+    [
+      ...(r.rowLevelPermissionPredicates ?? []),
+      ...(r.rowLevelPermissionPredicateGroups ?? []),
+    ].some((p) => p.objectMetadataId === person.objectMetadataId),
+  );
