@@ -2919,22 +2919,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"twenty-client-sdk@npm:2.46.0":
-  version: 2.46.0
-  resolution: "twenty-client-sdk@npm:2.46.0"
+"twenty-client-sdk@npm:2.47.0":
+  version: 2.47.0
+  resolution: "twenty-client-sdk@npm:2.47.0"
   dependencies:
     "@genql/runtime": "npm:^2.10.0"
     esbuild: "npm:^0.28.1"
     graphql: "npm:^16.8.1"
     lodash: "npm:^4.17.21"
     prettier: "npm:^3.8.3"
-  checksum: 10c0/df2f619b17677dcfbc31241456f22b054b09285968b9cbf32b2013c1293f091f3add871975233f947678aaede2475d1d9d8ca344d3f6cf894d217911747efca4
+  checksum: 10c0/9feb12441b49f3d437ff4f71b42acda369eefbe0e1e1cf620f4ca0c5aa22ad05d9783b3abf87404a3f2b8e670be8df56972e307716b9d452b09ee957e05414fa
   languageName: node
   linkType: hard
 
-"twenty-sdk@npm:2.46.0":
-  version: 2.46.0
-  resolution: "twenty-sdk@npm:2.46.0"
+"twenty-sdk@npm:2.47.0":
+  version: 2.47.0
+  resolution: "twenty-sdk@npm:2.47.0"
   dependencies:
     "@sniptt/guards": "npm:^0.2.0"
     axios: "npm:^1.16.0"
@@ -2953,12 +2953,12 @@ __metadata:
     semver: "npm:7.6.3"
     sharp: "npm:^0.35.3"
     tinyglobby: "npm:^0.2.15"
-    twenty-client-sdk: "npm:2.46.0"
+    twenty-client-sdk: "npm:2.47.0"
     typescript: "npm:^5.9.3"
     uuid: "npm:^13.0.2"
   bin:
     twenty: dist/cli.cjs
-  checksum: 10c0/181523f814c2cf785411a822decd0b2c1613df0ad86c84535e5c44a1e25760bcfb375ef00c271dec5351c0a6be7ab18052b64eee87226379d00bcdef79839df3
+  checksum: 10c0/85d615f9de5057940cc04f766bf47e5da2ac6a3ba0324f03dc6e99ab20c52a2059f30c5ef630534097e7f34923d882cb896da536a6302ab2393c1291662cd1aa
   languageName: node
   linkType: hard
 
@@ -2972,18 +2972,18 @@ __metadata:
     oxlint: "npm:^0.16.0"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
-    twenty-client-sdk: "npm:2.46.0"
-    twenty-sdk: "npm:2.46.0"
-    twenty-ui: "npm:2.46.0"
+    twenty-client-sdk: "npm:2.47.0"
+    twenty-sdk: "npm:2.47.0"
+    twenty-ui: "npm:2.47.0"
     typescript: "npm:^5.9.3"
     vite-tsconfig-paths: "npm:^4.2.1"
     vitest: "npm:^4.0.0"
   languageName: unknown
   linkType: soft
 
-"twenty-ui@npm:2.46.0":
-  version: 2.46.0
-  resolution: "twenty-ui@npm:2.46.0"
+"twenty-ui@npm:2.47.0":
+  version: 2.47.0
+  resolution: "twenty-ui@npm:2.47.0"
   dependencies:
     "@base-ui/react": "npm:^1.8.0"
     "@base-ui/utils": "npm:0.4.0"
@@ -3002,7 +3002,7 @@ __metadata:
       optional: true
     monaco-editor:
       optional: true
-  checksum: 10c0/b47d809184e7b1cb78fd44e5a32c4ebe7acf1d8a9a4420ecd6e4cf181b715e32c2f3b016b7fe7d19a9db8021936e8e011aadf4aef5ccfab56d7cb1a9acfc4da0
+  checksum: 10c0/4bc6407c5df86887213e6c19a1001872bfb3e54cb11ab99df3057cc87b6d0f7972cb7b2c6f0df788661b338edfe14867882b58d1e4209fd1c14dee3d7055d2f6
   languageName: node
   linkType: hard
 
